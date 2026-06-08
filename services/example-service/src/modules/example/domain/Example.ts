@@ -37,6 +37,13 @@ export class Example {
     this.props.status = ExampleStatus.Published;
   }
 
+  rename(name: string): void {
+    if (name.trim().length === 0) {
+      throw new InvalidExampleStateError('El nombre es obligatorio');
+    }
+    this.props.name = name;
+  }
+
   get id(): string {
     return this.props.id;
   }

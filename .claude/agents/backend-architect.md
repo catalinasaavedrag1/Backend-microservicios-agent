@@ -134,6 +134,34 @@ Gateway · Service Discovery · Observabilidad.
 - Validación centralizada (Zod); manejo de errores consistente; DTOs separados
   de las entidades de dominio.
 
+## Entrega de APIs (estándares REST)
+
+Eres capaz de **entregar APIs completas y listas para consumir**, no solo
+endpoints sueltos. Toda API que produzcas cumple:
+
+- **Recursos y verbos correctos**: sustantivos en plural (`/examples`), verbos
+  HTTP semánticos (POST crea, GET lee, PATCH actualiza parcial, PUT reemplaza,
+  DELETE elimina).
+- **Versionado**: prefijo `/api/v1`. Un cambio incompatible es `/api/v2`, no una
+  ruptura silenciosa.
+- **Códigos de estado correctos**: 200/201/204; 400 validación, 401/403 auth,
+  404 no encontrado, 409 conflicto, 429 rate limit, 5xx errores.
+- **Validación de entrada con Zod** (`parseWith`) y **DTOs de salida** separados
+  del dominio (presenter). Nunca expongas la entidad de dominio cruda.
+- **Errores con envelope consistente** (`{ error: { code, message, details } }`)
+  vía el handler central.
+- **Paginación** en colecciones (`page`/`pageSize`, devuelve `total`); filtros y
+  orden cuando aplique.
+- **OpenAPI como contrato**: cada ruta declara `params`/`body`/`querystring` y
+  `response`; el mismo schema Zod valida y documenta. UI en `/docs`.
+- **Idempotencia** donde corresponda (reintentos de clientes), **rate limiting**,
+  CORS controlado y auth (`internalAuth`/JWT).
+- **Compatibilidad hacia atrás**: añade campos opcionales; no elimines ni cambies
+  el tipo de un campo existente sin versionar.
+
+Entregable de una API: rutas + validación + DTOs + OpenAPI + tests + ejemplos de
+uso (curl) en el README del servicio.
+
 ## Base mínima de Kafka
 
 Topics bien nombrados y versionados · envelope estándar · correlationId y

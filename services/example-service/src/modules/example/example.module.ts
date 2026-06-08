@@ -1,5 +1,7 @@
 import type { ConsumerHandler, IdempotencyStore, OutboxPort, RoutePlugin } from '@bjm/shared';
 import { CreateExampleUseCase } from './application/use-cases/CreateExample.usecase';
+import { RenameExampleUseCase } from './application/use-cases/RenameExample.usecase';
+import { DeleteExampleUseCase } from './application/use-cases/DeleteExample.usecase';
 import { PublishExampleUseCase } from './application/use-cases/PublishExample.usecase';
 import { PrismaExampleRepository } from './infrastructure/persistence/PrismaExampleRepository';
 import { PrismaOutboxRepository } from './infrastructure/persistence/PrismaOutboxRepository';
@@ -22,9 +24,16 @@ export function buildExampleModule(): ExampleModule {
   const idempotency = new PrismaIdempotencyStore();
 
   const createExample = new CreateExampleUseCase(exampleRepository);
+  const renameExample = new RenameExampleUseCase(exampleRepository);
+  const deleteExample = new DeleteExampleUseCase(exampleRepository);
   const publishExample = new PublishExampleUseCase(exampleRepository);
 
-  const controller = new ExampleController(createExample, exampleRepository);
+  const controller = new ExampleController(
+    createExample,
+    renameExample,
+    deleteExample,
+    exampleRepository,
+  );
 
   return {
     routes: [exampleRoutes(controller)],

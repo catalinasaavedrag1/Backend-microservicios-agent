@@ -52,7 +52,7 @@ docker compose up --build
 
 ```bash
 # crear un recurso (dispara example.created -> outbox -> consumo idempotente -> PUBLISHED)
-curl -X POST http://localhost:3001/examples -H 'content-type: application/json' \
+curl -X POST http://localhost:3001/api/v1/examples -H 'content-type: application/json' \
   -d '{ "name": "demo" }'
 
 # documentación OpenAPI

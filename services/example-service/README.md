@@ -15,20 +15,39 @@ patrones de fiabilidad del proyecto sobre un agregado neutro `Example`.
   (con retry + DLQ vía `@bjm/shared`).
 - **OpenAPI** en `/docs`, **health/readiness** en `/health` y `/ready`.
 
-## API
+## API REST (versionada en `/api/v1`)
 
-| Método | Ruta            | Descripción             |
-| ------ | --------------- | ----------------------- |
-| POST   | `/examples`     | Crear un example        |
-| GET    | `/examples/:id` | Obtener un example      |
-| GET    | `/docs`         | Swagger UI (OpenAPI)    |
-| GET    | `/health`       | Sonda de liveness       |
-| GET    | `/ready`        | Sonda de readiness (BD) |
+| Método | Ruta                   | Descripción                | Códigos       |
+| ------ | ---------------------- | -------------------------- | ------------- |
+| POST   | `/api/v1/examples`     | Crear un example           | 201, 400      |
+| GET    | `/api/v1/examples`     | Listar examples (paginado) | 200           |
+| GET    | `/api/v1/examples/:id` | Obtener un example         | 200, 404      |
+| PATCH  | `/api/v1/examples/:id` | Renombrar un example       | 200, 400, 404 |
+| DELETE | `/api/v1/examples/:id` | Eliminar un example        | 204, 404      |
+| GET    | `/docs`                | Swagger UI (OpenAPI)       |               |
+| GET    | `/metrics`             | Métricas Prometheus        |               |
+| GET    | `/health` / `/ready`   | Liveness / readiness (BD)  |               |
+
+Paginación: `?page=1&pageSize=20` (la lista devuelve `{ items, page, pageSize, total }`).
+Errores con envelope consistente: `{ "error": { "code", "message", "details" } }`.
 
 ```bash
-curl -X POST http://localhost:3001/examples \
-  -H 'content-type: application/json' \
-  -d '{ "name": "demo" }'
+# crear
+curl -X POST http://localhost:3001/api/v1/examples \
+  -H 'content-type: application/json' -d '{ "name": "demo" }'
+
+# listar (paginado)
+curl 'http://localhost:3001/api/v1/examples?page=1&pageSize=20'
+
+# obtener
+curl http://localhost:3001/api/v1/examples/<id>
+
+# renombrar
+curl -X PATCH http://localhost:3001/api/v1/examples/<id> \
+  -H 'content-type: application/json' -d '{ "name": "nuevo" }'
+
+# eliminar
+curl -X DELETE http://localhost:3001/api/v1/examples/<id>
 ```
 
 ## Cómo crear un servicio nuevo a partir de esta plantilla

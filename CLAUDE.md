@@ -43,6 +43,9 @@ Cada servicio sigue arquitectura limpia:
   entidades de dominio.
 - **APIs documentadas:** cada servicio expone OpenAPI en `/docs` (el mismo schema
   Zod valida y documenta).
+- **Diseño de API:** REST versionada en `/api/v1`, verbos y códigos de estado
+  correctos, paginación en colecciones, DTOs de salida (presenter) separados del
+  dominio, errores con envelope consistente.
 
 ## Comandos
 
