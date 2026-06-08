@@ -1,7 +1,8 @@
 # Catálogo de eventos
 
 Todos los eventos comparten el envelope estándar (`@bjm/contracts` →
-`DomainEvent`):
+`DomainEvent`). Cada proyecto declara sus propios eventos siguiendo este formato;
+aquí se documenta el del servicio de ejemplo como referencia.
 
 ```ts
 type DomainEvent<TPayload> = {
@@ -18,58 +19,24 @@ type DomainEvent<TPayload> = {
 };
 ```
 
-| Topic                                 | eventType                          | Productor | Consumidores    |
-| ------------------------------------- | ---------------------------------- | --------- | --------------- |
-| `oms.orders.order-created.v1`         | `oms.order.created`                | orders    | inventory       |
-| `oms.inventory.stock-reserved.v1`     | `oms.inventory.stock-reserved`     | inventory | orders, picking |
-| `oms.inventory.reservation-failed.v1` | `oms.inventory.reservation-failed` | inventory | orders          |
-| `oms.picking.picking-assigned.v1`     | `oms.picking.assigned`             | picking   | (terminal)      |
+## Convención de topics
 
-Cada topic tiene un `<topic>.dlq` implícito para mensajes envenenados y
-reintentos agotados.
+`<dominio>.<evento>.v<version>` (helper `topicName(dominio, evento, version)` en
+`@bjm/contracts`). Cada topic tiene un `<topic>.dlq` implícito para mensajes
+envenenados y reintentos agotados.
 
-## Payloads
+| Topic                        | eventType         | Productor       | Consumidores           |
+| ---------------------------- | ----------------- | --------------- | ---------------------- |
+| `example.example-created.v1` | `example.created` | example-service | example-service (demo) |
 
-### `oms.order.created`
+## Payload de ejemplo
 
-```jsonc
-{
-  "orderId": "uuid",
-  "customerId": "string",
-  "currency": "CLP",
-  "totalAmount": 3980,
-  "items": [{ "sku": "SKU-1", "quantity": 2, "unitPrice": 1990 }],
-}
-```
-
-### `oms.inventory.stock-reserved`
+### `example.created`
 
 ```jsonc
 {
-  "orderId": "uuid",
-  "reservationId": "uuid",
-  "items": [{ "sku": "SKU-1", "quantity": 2 }],
-}
-```
-
-### `oms.inventory.reservation-failed`
-
-```jsonc
-{
-  "orderId": "uuid",
-  "reason": "INSUFFICIENT_STOCK",
-  "shortages": [{ "sku": "SKU-1", "requested": 2, "available": 0 }],
-}
-```
-
-### `oms.picking.assigned`
-
-```jsonc
-{
-  "orderId": "uuid",
-  "pickingTaskId": "uuid",
-  "reservationId": "uuid",
-  "items": [{ "sku": "SKU-1", "quantity": 2 }],
+  "exampleId": "uuid",
+  "name": "demo",
 }
 ```
 

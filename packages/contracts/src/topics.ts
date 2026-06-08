@@ -1,16 +1,22 @@
 /**
- * Topic catalog. Topics are versioned in their name so that a breaking change to
- * an event schema becomes a new topic (`...v2`) instead of silently breaking
- * existing consumers.
+ * Convención de nombres de topics: `<dominio>.<evento>.v<version>`.
+ *
+ * Versionar el topic en el nombre hace que un cambio incompatible se convierta en
+ * un topic nuevo (`...v2`) en lugar de romper en silencio a los consumidores
+ * existentes.
+ */
+export const topicName = (domain: string, event: string, version = 1): string =>
+  `${domain}.${event}.v${version}`;
+
+/**
+ * Catálogo de topics. Cada proyecto declara aquí los suyos; los del servicio de
+ * ejemplo (plantilla) se incluyen como referencia.
  */
 export const Topics = {
-  OrderCreated: 'oms.orders.order-created.v1',
-  StockReserved: 'oms.inventory.stock-reserved.v1',
-  ReservationFailed: 'oms.inventory.reservation-failed.v1',
-  PickingAssigned: 'oms.picking.picking-assigned.v1',
+  ExampleCreated: topicName('example', 'example-created', 1),
 } as const;
 
 export type Topic = (typeof Topics)[keyof typeof Topics];
 
-/** Dead Letter Queue topic name derived from any source topic. */
+/** Nombre del topic de Dead Letter Queue derivado de cualquier topic de origen. */
 export const dlqTopic = (topic: string): string => `${topic}.dlq`;

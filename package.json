@@ -2,7 +2,7 @@
   "name": "backend-microservices-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Event-driven OMS microservices scaffold (Fastify + Prisma + PostgreSQL + KafkaJS)",
+  "description": "Reference architecture for event-driven backend microservices (Fastify + Prisma + PostgreSQL + KafkaJS)",
   "engines": {
     "node": ">=20"
   },
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build:libs": "npm run build -w @bjm/contracts && npm run build -w @bjm/shared",
-    "build:services": "npm run build -w services/orders && npm run build -w services/inventory && npm run build -w services/picking",
+    "build:services": "npm run build -w @bjm/example-service",
     "build": "npm run build:libs && npm run build:services",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",

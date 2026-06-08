@@ -1,51 +1,48 @@
 # Arquitectura
 
-## Visión general
+Este repositorio es una **arquitectura de referencia** para backends de
+microservicios orientados a eventos. Define la estructura, los patrones y los
+estándares; el dominio concreto lo aporta cada proyecto copiando la plantilla
+`services/example-service`.
 
-Tres microservicios desplegables de forma independiente implementan una saga de
-gestión de pedidos. Cada servicio es dueño de su propia base de datos PostgreSQL
-y se comunica únicamente a través de eventos de Kafka (cambios de estado) y REST
-(comandos/consultas). El único artefacto compartido es `@bjm/contracts` (envelope
-de eventos + schemas + nombres de topics).
+## Principios
+
+- Cada servicio es **dueño de su base de datos** y se despliega de forma
+  independiente.
+- Los servicios se comunican por **eventos** (cambios de estado, vía Kafka) y
+  **REST** (comandos/consultas directas).
+- Se comparten **solo contratos** (`@bjm/contracts`), nunca entidades internas.
+- Se evita el "monolito distribuido": ningún servicio depende del tiempo de
+  ejecución de otro para operar.
+
+## Estructura de un servicio (clean architecture)
 
 ```
-                 POST /orders
-                      │
-                      ▼
-            ┌───────────────────┐    order.created     ┌──────────────────────┐
-            │   orders-service   │ ───────────────────▶ │  inventory-service    │
-            │  (orders DB)       │                      │  (inventory DB)       │
-            │                    │ ◀─────────────────── │                       │
-            └───────────────────┘  stock-reserved /     └──────────────────────┘
-                      ▲             reservation-failed              │
-                      │                                             │ stock-reserved
-        confirmar/rechazar (saga)                                   ▼
-                                                       ┌──────────────────────┐
-                                                       │   picking-service     │
-                                                       │   (picking DB)        │
-                                                       └──────────────────────┘
-                                                                  │ picking-assigned
-                                                                  ▼
+services/<servicio>/
+  src/
+    config/            # env (Zod), database (Prisma), kafka
+    modules/<dominio>/
+      domain/          # agregados y reglas puras (sin infra)
+      application/
+        ports/         # interfaces (repositorios, etc.)
+        use-cases/     # orquestan dominio + ports
+      infrastructure/
+        http/          # controllers, rutas, schemas
+        persistence/   # repositorios Prisma, mappers, outbox, idempotencia
+        kafka/         # consumidores
+      <dominio>.module.ts   # raíz de composición (cablea dependencias)
+    main.ts            # arranque: producer/consumer, outbox relay, server
+  prisma/schema.prisma # agregado + OutboxMessage + ProcessedEvent
 ```
 
-## Flujo de la saga (coreografía)
+Dependencias permitidas: `infrastructure` → `application` → `domain`. El dominio
+no importa nada de infraestructura.
 
-1. **Crear pedido** — `POST /orders` persiste un `Order` (estado `PENDING`) y una
-   fila `OrderCreated` en el outbox, en una sola transacción.
-2. **Publicar** — el relay del outbox publica `order.created` en Kafka.
-3. **Reservar stock** — inventory consume `order.created` y, en una transacción,
-   o bien reserva stock + emite `stock-reserved`, o bien emite
-   `reservation-failed` con los faltantes.
-4. **Avanzar / compensar** — orders consume el resultado:
-   `stock-reserved → CONFIRMED`, `reservation-failed → REJECTED`.
-5. **Cumplir** — picking consume `stock-reserved`, crea una tarea de picking y
-   emite `picking-assigned`.
-
-## Patrones de fiabilidad
+## Patrones de fiabilidad (en `@bjm/shared`)
 
 - **Outbox transaccional** — los eventos se escriben en la misma transacción de
-  BD que el cambio del agregado y luego se relevan a Kafka. No se pierden eventos
-  ante una caída.
+  BD que el cambio del agregado y luego un relay los publica en Kafka. No se
+  pierden eventos ante una caída.
 - **Consumidores idempotentes** — cada `eventId` consumido se registra en una
   tabla de inbox (`processed_events`); las reentregas se omiten.
 - **Retry + Dead Letter Queue** — los handlers reintentan con backoff
@@ -53,11 +50,22 @@ de eventos + schemas + nombres de topics).
   agotados se enrutan a `<topic>.dlq`.
 - **Correlation / causation ids** — se propagan desde HTTP a través de cada
   evento para trazabilidad de punta a punta.
+- **Orden por agregado** — el id del agregado se usa como clave del mensaje, de
+  modo que los eventos del mismo agregado caen en la misma partición.
 
-## Orden por agregado
+## El servicio de ejemplo
 
-El id del agregado se usa como clave del mensaje de Kafka, de modo que todos los
-eventos de un pedido caen en la misma partición y se procesan en orden.
+`services/example-service` demuestra el ciclo completo sobre un agregado neutro
+`Example`:
+
+1. `POST /examples` persiste un `Example` (estado `DRAFT`) y un evento
+   `ExampleCreated` en el outbox, en una sola transacción.
+2. El relay del outbox publica `example.created` en Kafka.
+3. El consumidor (idempotente) recibe `example.created` y publica el agregado
+   (estado `PUBLISHED`).
+
+Es deliberadamente trivial: su valor es servir de **molde** para un servicio
+real, no representar un dominio concreto.
 
 ## Compromisos / próximos pasos
 

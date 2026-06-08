@@ -1,60 +1,63 @@
-# Backend Microservices Agent — OMS Event-Driven
+# Backend Microservices — Arquitectura de referencia
 
-Sistema de gestión de pedidos (OMS) orientado a eventos, construido como
-referencia para el **Node.js Event-Driven Backend Architect Agent** (ver
+Plantilla y toolkit de referencia para **cualquier proyecto backend de
+microservicios orientado a eventos**. No es un producto concreto: define la
+**estructura, la arquitectura y los estándares de clean code** que debe seguir un
+servicio, junto con un **agente arquitecto/revisor** (ver
 [`.claude/agents/backend-architect.md`](.claude/agents/backend-architect.md) y
 [`CLAUDE.md`](CLAUDE.md)).
 
-Stack: **TypeScript · Fastify · Prisma · PostgreSQL · KafkaJS · Zod · Vitest ·
-ESLint · Prettier · Husky · Docker Compose**.
+Stack de referencia: **TypeScript · Fastify · Prisma · PostgreSQL · KafkaJS ·
+Zod · Vitest · ESLint · Prettier · Husky · OpenAPI · Docker Compose**.
 
 ## Qué contiene
 
-Un monorepo con npm workspaces y tres microservicios desplegables de forma
-independiente que colaboran mediante una saga coreografiada sobre Kafka (Outbox +
-Idempotencia + Retry + DLQ):
+Un monorepo con npm workspaces:
 
-| Servicio            | Puerto | BD propia    | Rol                                    |
-| ------------------- | ------ | ------------ | -------------------------------------- |
-| `orders-service`    | 3001   | orders DB    | Crea pedidos; confirma/rechaza (saga)  |
-| `inventory-service` | 3002   | inventory DB | Reserva stock; emite reservado/fallido |
-| `picking-service`   | 3003   | picking DB   | Crea tareas de picking                 |
+| Pieza                      | Qué es                                                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/contracts`       | Envelope de evento genérico, convención de topics y schemas (contratos)                                                                                         |
+| `packages/shared`          | Toolkit reutilizable: logger, errores, validación, Kafka (publisher/consumer con retry + DLQ + idempotencia), relay de outbox, health, server builder y OpenAPI |
+| `services/example-service` | **Plantilla** de microservicio que copias para crear uno nuevo                                                                                                  |
+
+`packages/shared` y `packages/contracts` se reutilizan tal cual en cualquier
+proyecto; `services/example-service` es el **molde** que muestra la arquitectura
+limpia y los patrones de fiabilidad sobre un dominio neutro.
 
 ```
-packages/contracts   envelope de eventos, topics y schemas compartidos (contrato entre servicios)
-packages/shared      logger, errores, helpers de Kafka, relay de outbox, health, server
-services/*           orders · inventory · picking  (clean architecture por servicio)
+packages/contracts   envelope de eventos, topics y schemas (compartir solo contratos)
+packages/shared      logger, errores, helpers de Kafka, relay de outbox, health, server, OpenAPI
+services/example-service   plantilla con clean architecture (domain → application → infrastructure)
 ```
 
-Consulta [`docs/architecture.md`](docs/architecture.md) para el flujo de la saga
-y [`docs/event-catalog.md`](docs/event-catalog.md) para todos los eventos.
+Consulta [`docs/architecture.md`](docs/architecture.md) para la estructura y los
+patrones, y [`docs/event-catalog.md`](docs/event-catalog.md) para el formato de
+eventos.
+
+## Crear un servicio nuevo
+
+1. Copia `services/example-service` a `services/<tu-servicio>`.
+2. Renombra el paquete (`@bjm/<tu-servicio>`).
+3. Reemplaza el módulo `example` por tu dominio (agregado, use cases, repos).
+4. Declara tus eventos en `packages/contracts` y tus topics en `topics.ts`.
+5. Ajusta `prisma/schema.prisma` (conserva `OutboxMessage` y `ProcessedEvent`).
+6. Añade el servicio a `docker-compose.yml`.
 
 ## Inicio rápido (Docker)
 
 ```bash
 docker compose up --build
-# Levanta Kafka + 3 Postgres + 3 servicios; los esquemas se aplican al arrancar.
+# Levanta Kafka + Postgres + el servicio de ejemplo; el esquema se aplica al arrancar.
 ```
-
-Carga algo de stock y dispara la saga:
 
 ```bash
-# 1. dar stock al inventario
-curl -X PUT http://localhost:3002/stock -H 'content-type: application/json' \
-  -d '{ "sku": "SKU-1", "available": 100 }'
+# crear un recurso (dispara example.created -> outbox -> consumo idempotente -> PUBLISHED)
+curl -X POST http://localhost:3001/examples -H 'content-type: application/json' \
+  -d '{ "name": "demo" }'
 
-# 2. crear un pedido (dispara order.created -> stock-reserved -> confirma + picking)
-curl -X POST http://localhost:3001/orders -H 'content-type: application/json' \
-  -d '{ "customerId": "cust-1", "currency": "CLP",
-        "items": [{ "sku": "SKU-1", "quantity": 2, "unitPrice": 1990 }] }'
-
-# 3. observar los resultados
-curl http://localhost:3001/orders/<orderId>     # status: CONFIRMED
-curl http://localhost:3003/picking-tasks        # se creó una tarea
+# documentación OpenAPI
+open http://localhost:3001/docs
 ```
-
-Pide más unidades de las disponibles para ver la ruta de **compensación**
-(`reservation-failed` → pedido `REJECTED`).
 
 ## Desarrollo local (sin Docker)
 
@@ -63,15 +66,14 @@ npm install
 npm run build:libs        # compila primero @bjm/contracts y @bjm/shared
 npm test                  # tests unitarios (no requieren infraestructura)
 
-# ejecutar un solo servicio contra un Postgres + Kafka locales (ver cada .env.example)
-npm run dev -w @bjm/orders-service
+npm run dev -w @bjm/example-service
 ```
 
 ## Scripts útiles
 
 | Comando             | Descripción                        |
 | ------------------- | ---------------------------------- |
-| `npm run build`     | Compila librerías y servicios      |
+| `npm run build`     | Compila librerías y el servicio    |
 | `npm test`          | Ejecuta la suite de Vitest         |
 | `npm run lint`      | Linting con ESLint                 |
 | `npm run format`    | Formateo con Prettier              |

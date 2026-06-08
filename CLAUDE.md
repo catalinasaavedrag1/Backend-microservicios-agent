@@ -1,9 +1,12 @@
 # CLAUDE.md — Estándares del proyecto
 
-Microservicios OMS orientados a eventos. **Fastify + Prisma + PostgreSQL +
-KafkaJS + Zod + Vitest**, organizados como monorepo con npm workspaces.
+Arquitectura de **referencia para backends de microservicios orientados a
+eventos**. **Fastify + Prisma + PostgreSQL + KafkaJS + Zod + Vitest**, como
+monorepo con npm workspaces.
 
-Para la persona completa del arquitecto y el checklist de revisión de PR ver
+No es un dominio concreto: es la estructura, la arquitectura y los estándares de
+clean code que debe seguir cualquier servicio. Para la persona completa del
+arquitecto y el checklist de revisión de PR ver
 [`.claude/agents/backend-architect.md`](.claude/agents/backend-architect.md).
 
 ## Estructura
@@ -11,11 +14,9 @@ Para la persona completa del arquitecto y el checklist de revisión de PR ver
 ```
 packages/
   contracts/   # envelope de eventos, topics y schemas (el ÚNICO contrato entre servicios)
-  shared/      # infra transversal: logger, errores, helpers de Kafka, relay de outbox, health, server
+  shared/      # infra transversal: logger, errores, helpers de Kafka, relay de outbox, health, server, OpenAPI
 services/
-  orders/      # lado de comandos: crea pedidos, reacciona a eventos de inventario
-  inventory/   # reserva stock, emite reservado/fallido
-  picking/     # crea tareas de picking cuando el stock queda reservado
+  example-service/   # PLANTILLA: cópiala para crear un servicio nuevo
 ```
 
 Cada servicio sigue arquitectura limpia:
@@ -40,6 +41,8 @@ Cada servicio sigue arquitectura limpia:
   mágicos.
 - **Tipos:** evita `any` (el lint lo advierte). Los DTO están separados de las
   entidades de dominio.
+- **APIs documentadas:** cada servicio expone OpenAPI en `/docs` (el mismo schema
+  Zod valida y documenta).
 
 ## Comandos
 
@@ -50,8 +53,14 @@ npm run build          # compila todo
 npm test               # ejecuta la suite de tests unitarios (no requiere infra)
 npm run lint           # eslint
 npm run format         # prettier --write
-docker compose up --build   # levanta todo el stack (Kafka + 3 Postgres + 3 servicios)
+docker compose up --build   # levanta el stack de referencia (Kafka + Postgres + servicio de ejemplo)
 ```
+
+## Crear un servicio nuevo
+
+Copia `services/example-service`, renómbralo, reemplaza el módulo `example` por
+tu dominio, declara tus eventos en `packages/contracts` y conserva las tablas
+`OutboxMessage` y `ProcessedEvent` en tu schema de Prisma.
 
 ## Expectativas de testing
 

@@ -5,15 +5,15 @@
 
 ## Contexto
 
-El OMS necesita servicios desplegables de forma independiente (orders, inventory,
-picking) que se mantengan consistentes sin compartir una base de datos. El
+La arquitectura de referencia necesita servicios desplegables de forma
+independiente que se mantengan consistentes sin compartir una base de datos. El
 encadenamiento síncrono acoplaría su disponibilidad y crearía un monolito
 distribuido.
 
 ## Decisión
 
-- Usar **eventos coreografiados sobre Kafka** para los cambios de estado; REST
-  solo para comandos/consultas directas.
+- Usar **eventos sobre Kafka** para los cambios de estado; REST solo para
+  comandos/consultas directas.
 - Cada servicio es **dueño de su base de datos**; los datos entre servicios
   fluyen como eventos.
 - Garantizar la entrega con el **outbox transaccional** en el lado de escritura y
@@ -25,14 +25,12 @@ distribuido.
 ## Consecuencias
 
 - Los servicios quedan débilmente acoplados y se despliegan de forma
-  independiente; orders no necesita que inventory esté disponible para aceptar un
-  pedido.
+  independiente.
 - La entrega es al-menos-una-vez; los consumidores deben ser (y son)
   idempotentes.
-- Crece la superficie operativa: un broker, tres bases de datos y monitoreo de
-  DLQ.
-- Consistencia eventual: un pedido queda en `PENDING` hasta que inventory
-  responde.
+- Crece la superficie operativa: un broker, una base de datos por servicio y
+  monitoreo de DLQ.
+- Consistencia eventual entre servicios.
 
 ## Alternativas consideradas
 

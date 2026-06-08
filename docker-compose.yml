@@ -1,4 +1,8 @@
-name: oms-microservices
+name: backend-microservices-reference
+
+# Stack de referencia: un broker Kafka (KRaft), un Postgres y el servicio de
+# ejemplo (plantilla). Para un proyecto real, replica el bloque del servicio y su
+# base de datos por cada microservicio.
 
 services:
   kafka:
@@ -22,112 +26,40 @@ services:
       timeout: 10s
       retries: 10
 
-  orders-db:
+  example-db:
     image: postgres:16-alpine
     ports:
       - '5433:5432'
     environment:
-      POSTGRES_USER: oms
-      POSTGRES_PASSWORD: oms
-      POSTGRES_DB: orders
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: example
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U oms -d orders']
+      test: ['CMD-SHELL', 'pg_isready -U app -d example']
       interval: 5s
       timeout: 5s
       retries: 10
     volumes:
-      - orders-db-data:/var/lib/postgresql/data
+      - example-db-data:/var/lib/postgresql/data
 
-  inventory-db:
-    image: postgres:16-alpine
-    ports:
-      - '5434:5432'
-    environment:
-      POSTGRES_USER: oms
-      POSTGRES_PASSWORD: oms
-      POSTGRES_DB: inventory
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U oms -d inventory']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - inventory-db-data:/var/lib/postgresql/data
-
-  picking-db:
-    image: postgres:16-alpine
-    ports:
-      - '5435:5432'
-    environment:
-      POSTGRES_USER: oms
-      POSTGRES_PASSWORD: oms
-      POSTGRES_DB: picking
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U oms -d picking']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - picking-db-data:/var/lib/postgresql/data
-
-  orders-service:
+  example-service:
     build:
       context: .
-      dockerfile: services/orders/Dockerfile
+      dockerfile: services/example-service/Dockerfile
     ports:
       - '3001:3001'
     environment:
-      SERVICE_NAME: orders-service
+      SERVICE_NAME: example-service
       PORT: '3001'
-      DATABASE_URL: postgresql://oms:oms@orders-db:5432/orders?schema=public
+      DATABASE_URL: postgresql://app:app@example-db:5432/example?schema=public
       KAFKA_BROKERS: kafka:9092
-      KAFKA_CLIENT_ID: orders-service
-      KAFKA_GROUP_ID: orders-service
+      KAFKA_CLIENT_ID: example-service
+      KAFKA_GROUP_ID: example-service
     depends_on:
       kafka:
         condition: service_healthy
-      orders-db:
-        condition: service_healthy
-
-  inventory-service:
-    build:
-      context: .
-      dockerfile: services/inventory/Dockerfile
-    ports:
-      - '3002:3002'
-    environment:
-      SERVICE_NAME: inventory-service
-      PORT: '3002'
-      DATABASE_URL: postgresql://oms:oms@inventory-db:5432/inventory?schema=public
-      KAFKA_BROKERS: kafka:9092
-      KAFKA_CLIENT_ID: inventory-service
-      KAFKA_GROUP_ID: inventory-service
-    depends_on:
-      kafka:
-        condition: service_healthy
-      inventory-db:
-        condition: service_healthy
-
-  picking-service:
-    build:
-      context: .
-      dockerfile: services/picking/Dockerfile
-    ports:
-      - '3003:3003'
-    environment:
-      SERVICE_NAME: picking-service
-      PORT: '3003'
-      DATABASE_URL: postgresql://oms:oms@picking-db:5432/picking?schema=public
-      KAFKA_BROKERS: kafka:9092
-      KAFKA_CLIENT_ID: picking-service
-      KAFKA_GROUP_ID: picking-service
-    depends_on:
-      kafka:
-        condition: service_healthy
-      picking-db:
+      example-db:
         condition: service_healthy
 
 volumes:
-  orders-db-data:
-  inventory-db-data:
-  picking-db-data:
+  example-db-data:

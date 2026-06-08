@@ -6,8 +6,8 @@ function record(id: string): OutboxMessageRecord {
   return {
     id,
     eventId: `evt-${id}`,
-    topic: 'oms.orders.order-created.v1',
-    eventType: 'oms.order.created',
+    topic: 'example.example-created.v1',
+    eventType: 'example.created',
     eventVersion: 1,
     aggregateId: `agg-${id}`,
     aggregateType: 'Order',
@@ -31,7 +31,7 @@ describe('OutboxRelay', () => {
     expect(published).toBe(2);
     expect(publisher.publish).toHaveBeenCalledTimes(2);
     expect(publisher.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ eventId: 'evt-1', topic: 'oms.orders.order-created.v1' }),
+      expect.objectContaining({ eventId: 'evt-1', topic: 'example.example-created.v1' }),
     );
     expect(port.markPublished).toHaveBeenCalledWith(['1', '2']);
   });

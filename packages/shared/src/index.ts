@@ -3,6 +3,7 @@ export * from './logger/logger';
 export * from './errors/AppError';
 export * from './errors/errorHandler';
 export * from './validation/parse';
+export * from './validation/jsonSchema';
 export * from './http/correlation';
 export * from './health/health';
 export * from './server';

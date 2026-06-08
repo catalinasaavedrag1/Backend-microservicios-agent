@@ -1,0 +1,49 @@
+// Plantilla: cada servicio es dueño de su propia base de datos.
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Agregado de ejemplo. Reemplázalo por el agregado real de tu dominio.
+model Example {
+  id        String   @id @default(uuid())
+  name      String
+  status    String // DRAFT | PUBLISHED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("examples")
+}
+
+// Outbox transaccional: se escribe en la misma transacción que el agregado.
+model OutboxMessage {
+  id            String    @id @default(uuid())
+  eventId       String    @unique
+  topic         String
+  eventType     String
+  eventVersion  Int
+  aggregateId   String
+  aggregateType String
+  correlationId String
+  causationId   String?
+  payload       Json
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([publishedAt])
+  @@map("outbox_messages")
+}
+
+// Inbox: ids de eventos ya procesados para consumo idempotente.
+model ProcessedEvent {
+  eventId     String   @id
+  eventType   String
+  processedAt DateTime @default(now())
+
+  @@map("processed_events")
+}

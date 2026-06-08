@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@bjm/contracts": "*",
+    "@fastify/swagger": "^8.15.0",
+    "@fastify/swagger-ui": "^4.2.0",
     "fastify": "^4.28.0",
     "kafkajs": "^2.2.4",
     "pino": "^9.5.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

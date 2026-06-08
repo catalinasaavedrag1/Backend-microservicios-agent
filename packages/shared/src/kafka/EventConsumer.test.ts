@@ -1,30 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Consumer, EachMessagePayload, Producer } from 'kafkajs';
-import { OrderCreatedEventSchema, Topics, type OrderCreatedEvent } from '@bjm/contracts';
+import { ExampleCreatedEventSchema, Topics, type ExampleCreatedEvent } from '@bjm/contracts';
 import { EventConsumer, type ConsumerHandler } from './EventConsumer';
 import type { IdempotencyStore } from './IdempotencyStore';
 
-const validEvent: OrderCreatedEvent = {
+const validEvent: ExampleCreatedEvent = {
   eventId: '11111111-1111-1111-1111-111111111111',
-  eventType: 'oms.order.created',
+  eventType: 'example.created',
   eventVersion: 1,
   aggregateId: '22222222-2222-2222-2222-222222222222',
-  aggregateType: 'Order',
+  aggregateType: 'Example',
   occurredAt: '2026-06-08T00:00:00.000Z',
   correlationId: 'corr-1',
-  source: 'orders-service',
+  source: 'example-service',
   payload: {
-    orderId: '22222222-2222-2222-2222-222222222222',
-    customerId: 'cust-1',
-    currency: 'CLP',
-    totalAmount: 100,
-    items: [{ sku: 'SKU-1', quantity: 2, unitPrice: 50 }],
+    exampleId: '22222222-2222-2222-2222-222222222222',
+    name: 'demo',
   },
 };
 
 function payloadFor(value: unknown): EachMessagePayload {
   return {
-    topic: Topics.OrderCreated,
+    topic: Topics.ExampleCreated,
     partition: 0,
     message: {
       key: Buffer.from('key'),
@@ -55,12 +52,12 @@ function setup() {
 }
 
 describe('EventConsumer.processMessage', () => {
-  it('handles a valid event exactly once and marks it processed', async () => {
+  it('procesa un evento válido exactamente una vez y lo marca como procesado', async () => {
     const { consumer, idempotency } = setup();
     const handle = vi.fn().mockResolvedValue(undefined);
-    const handler: ConsumerHandler<OrderCreatedEvent['payload']> = {
-      topic: Topics.OrderCreated,
-      schema: OrderCreatedEventSchema,
+    const handler: ConsumerHandler<ExampleCreatedEvent['payload']> = {
+      topic: Topics.ExampleCreated,
+      schema: ExampleCreatedEventSchema,
       handle,
     };
 
@@ -68,17 +65,17 @@ describe('EventConsumer.processMessage', () => {
     expect(handle).toHaveBeenCalledTimes(1);
     expect(await idempotency.hasProcessed(validEvent.eventId)).toBe(true);
 
-    // Redelivery of the same event must be skipped.
+    // Una reentrega del mismo evento debe omitirse.
     await consumer.processMessage(handler, payloadFor(validEvent));
     expect(handle).toHaveBeenCalledTimes(1);
   });
 
-  it('routes a schema-invalid (poison) message to the DLQ without retrying', async () => {
+  it('enruta un mensaje con schema inválido (envenenado) a la DLQ sin reintentar', async () => {
     const { consumer, dlqProducer } = setup();
     const handle = vi.fn();
-    const handler: ConsumerHandler<OrderCreatedEvent['payload']> = {
-      topic: Topics.OrderCreated,
-      schema: OrderCreatedEventSchema,
+    const handler: ConsumerHandler<ExampleCreatedEvent['payload']> = {
+      topic: Topics.ExampleCreated,
+      schema: ExampleCreatedEventSchema,
       handle,
     };
 
@@ -86,16 +83,16 @@ describe('EventConsumer.processMessage', () => {
 
     expect(handle).not.toHaveBeenCalled();
     expect(dlqProducer.send).toHaveBeenCalledWith(
-      expect.objectContaining({ topic: `${Topics.OrderCreated}.dlq` }),
+      expect.objectContaining({ topic: `${Topics.ExampleCreated}.dlq` }),
     );
   });
 
-  it('retries a failing handler and routes to the DLQ once retries are exhausted', async () => {
+  it('reintenta un handler que falla y enruta a la DLQ al agotar los reintentos', async () => {
     const { consumer, dlqProducer } = setup();
     const handle = vi.fn().mockRejectedValue(new Error('boom'));
-    const handler: ConsumerHandler<OrderCreatedEvent['payload']> = {
-      topic: Topics.OrderCreated,
-      schema: OrderCreatedEventSchema,
+    const handler: ConsumerHandler<ExampleCreatedEvent['payload']> = {
+      topic: Topics.ExampleCreated,
+      schema: ExampleCreatedEventSchema,
       handle,
       maxRetries: 2,
     };
@@ -104,7 +101,7 @@ describe('EventConsumer.processMessage', () => {
 
     expect(handle).toHaveBeenCalledTimes(2);
     expect(dlqProducer.send).toHaveBeenCalledWith(
-      expect.objectContaining({ topic: `${Topics.OrderCreated}.dlq` }),
+      expect.objectContaining({ topic: `${Topics.ExampleCreated}.dlq` }),
     );
   });
 });
