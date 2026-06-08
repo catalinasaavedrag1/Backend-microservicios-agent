@@ -81,8 +81,21 @@ npm run dev -w @bjm/example-service
 
 ## Controles de calidad
 
-- **Husky + lint-staged** ejecutan ESLint y Prettier sobre los archivos en stage
-  antes de cada commit.
-- ESLint prohíbe `console.log`, exige `eqeqeq` y marca `any`.
-- Los límites de la arquitectura limpia y los patrones de fiabilidad están
-  documentados en [`CLAUDE.md`](CLAUDE.md).
+- **CI** (GitHub Actions): `lint + typecheck + test + format:check + build` y
+  validación de mensajes de commit (Conventional Commits).
+- **Husky + lint-staged**: ESLint y Prettier sobre los archivos en stage;
+  `commit-msg` valida el formato del commit.
+- **Boundaries por ESLint**: el dominio no puede importar infraestructura
+  (clean architecture forzada por lint). Prohíbe `console.log`, exige `eqeqeq`.
+- Estándares y patrones documentados en [`CLAUDE.md`](CLAUDE.md).
+
+## Seguridad y observabilidad
+
+- **Seguridad de entrada** (en `@bjm/shared`): helmet, CORS controlado y rate
+  limiting vía `buildServer({ security })`; `internalAuth` para llamadas
+  servicio-a-servicio.
+- **Métricas** Prometheus en `/metrics`; **tracing** OpenTelemetry opcional
+  (`OTEL_EXPORTER_OTLP_ENDPOINT`).
+- **OpenAPI** en `/docs`. Operación en [`docs/runbook.md`](docs/runbook.md),
+  objetivos en [`docs/slo.md`](docs/slo.md), diagramas en
+  [`docs/diagrams.md`](docs/diagrams.md).

@@ -62,6 +62,31 @@ Copia `services/example-service`, renómbralo, reemplaza el módulo `example` po
 tu dominio, declara tus eventos en `packages/contracts` y conserva las tablas
 `OutboxMessage` y `ProcessedEvent` en tu schema de Prisma.
 
+## Calidad, seguridad y observabilidad
+
+- **CI** (`.github/workflows/ci.yml`): `lint + typecheck + test + format:check +
+build` y validación de commits (Conventional Commits + commitlint).
+- **Boundaries por lint**: `domain/` no puede importar `application/`,
+  `infrastructure/` ni infraestructura; `application/` no importa
+  `infrastructure/`. No es convención: lo bloquea ESLint.
+- **Seguridad** (`@bjm/shared`): `helmet`, CORS controlado y rate limiting vía
+  `buildServer({ security })`; `internalAuth` (API key) para llamadas
+  servicio-a-servicio.
+- **Observabilidad**: métricas Prometheus en `/metrics` y tracing OpenTelemetry
+  opcional (activado por `OTEL_EXPORTER_OTLP_ENDPOINT`). Ver `docs/runbook.md` y
+  `docs/slo.md`.
+- **Migraciones**: `prisma migrate` en producción (`db push` solo en desarrollo).
+- **Apagado**: graceful shutdown (deja de consumir, drena HTTP, cierra conexiones).
+
+## No romper el proyecto
+
+Antes y después de cambiar: corre `lint`, `typecheck`, `test`, `format:check` y
+`build`. Busca todos los usos antes de borrar/renombrar. Cambios compatibles
+hacia atrás (expand-contract; eventos versionados; migraciones en dos fases). Si
+un cambio toca un contrato compartido (API/evento/BD), propágalo a **todos** los
+afectados (back, front, BD) y delega lo que salga del backend en el agente
+especialista correspondiente.
+
 ## Expectativas de testing
 
 Tests unitarios para los use cases y el consumidor (validación / idempotencia /

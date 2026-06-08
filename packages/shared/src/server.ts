@@ -4,6 +4,8 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import { registerCorrelation } from './http/correlation';
 import { registerErrorHandler } from './errors/errorHandler';
 import { registerHealthRoutes, type ReadinessCheck } from './health/health';
+import { registerSecurity, type SecurityOptions } from './security/security';
+import { registerMetrics } from './observability/metrics';
 
 export type RoutePlugin = (app: FastifyInstance) => Promise<void> | void;
 
@@ -19,6 +21,10 @@ export interface BuildServerOptions {
   routes: RoutePlugin[];
   readiness?: ReadinessCheck[];
   openapi?: OpenApiOptions;
+  /** Seguridad de entrada (helmet + CORS + rate limit). Omitir la desactiva. */
+  security?: SecurityOptions;
+  /** Expone métricas Prometheus en `/metrics`. Por defecto activado. */
+  metrics?: boolean;
 }
 
 /**
@@ -30,6 +36,14 @@ export async function buildServer(options: BuildServerOptions): Promise<FastifyI
   const app = Fastify({ logger: false, disableRequestLogging: true });
 
   registerCorrelation(app);
+
+  if (options.security) {
+    await registerSecurity(app, options.security);
+  }
+
+  if (options.metrics !== false) {
+    registerMetrics(app);
+  }
 
   if (options.openapi) {
     await app.register(fastifySwagger, {

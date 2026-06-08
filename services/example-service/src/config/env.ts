@@ -12,6 +12,19 @@ const envSchema = z.object({
   KAFKA_CLIENT_ID: z.string().default('example-service'),
   KAFKA_GROUP_ID: z.string().default('example-service'),
   LOG_LEVEL: z.string().default('info'),
+  // Seguridad
+  CORS_ORIGIN: z
+    .string()
+    .default('false')
+    .transform((value) => {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return value.split(',').map((o) => o.trim());
+    }),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  // API key interna para llamadas servicio-a-servicio (opcional)
+  INTERNAL_API_KEY: z.string().default(''),
 });
 
 /** Entorno validado y tipado. Falla rápido al arrancar si está mal configurado. */

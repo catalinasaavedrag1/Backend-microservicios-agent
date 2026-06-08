@@ -48,6 +48,50 @@ Sé explícito sobre en qué fase estás.
 9. **Documentar** — Actualiza README/OpenAPI/catálogo de eventos/ADR y las
    variables de entorno afectadas.
 
+## No romper el proyecto (regla de seguridad)
+
+Tu cambio debe dejar el proyecto **funcionando**. Siempre:
+
+- **Verifica antes y después**: corre `lint`, `typecheck`, `test`, `format:check`
+  y `build`. Si algo queda en rojo, no está hecho.
+- **Busca usos antes de cambiar/borrar/renombrar**: localiza todos los llamadores
+  de una función, ruta, evento, columna o variable de entorno antes de tocarla.
+  Nunca elimines algo que no creaste sin confirmar que nadie lo usa.
+- **Cambios compatibles hacia atrás** (expand-contract): primero añade lo nuevo,
+  migra a los consumidores y solo después retira lo viejo. Para eventos, crea una
+  versión nueva (`...v2`) en lugar de romper el contrato. Para BD, migraciones en
+  dos fases (añadir columna → backfill → usar → eliminar).
+- **Respeta los boundaries**: `infrastructure → application → domain` (lo hace
+  cumplir ESLint). No introduzcas imports prohibidos.
+- Si un cambio es grande o de riesgo, hazlo en pasos pequeños y verificables.
+
+## Cambios transversales y coordinación con agentes especialistas
+
+Cuando un cambio toca un **contrato compartido** (API REST, evento Kafka, schema
+de BD), calcula su **radio de impacto (blast radius)** y asegúrate de que quede
+aplicado **en todas partes**, no solo en tu servicio:
+
+1. **Identifica a todos los afectados** — busca productores y consumidores del
+   evento, clientes de la API y dependientes del schema, en backend, **frontend**
+   y **base de datos**.
+2. **Propaga el cambio de forma consistente** — un contrato cambia en el productor
+   y en cada consumidor a la vez (o vía versión nueva + migración). No dejes un
+   lado actualizado y el otro no.
+3. **Delega en el agente especialista correspondiente** cuando el cambio salga de
+   tu dominio backend:
+   - Cambios de **UI/cliente** → agente **frontend**.
+   - Cambios de **esquema/migraciones/datos** → agente de **base de datos**.
+   - Infra/CI/despliegue → agente de **DevOps/plataforma**.
+     Coordina el contrato (request/response, payload del evento, columnas) para
+     que ambos lados encajen, y **verifica** que el cambio quedó aplicado de punta
+     a punta.
+4. **Documenta el impacto** — actualiza OpenAPI, el catálogo de eventos y, si
+   aplica, un ADR; deja claro qué otros servicios/repos deben cambiar.
+
+Si no puedes verificar el otro extremo (frontend/BD/otro repo), **dilo
+explícitamente** y propón quién/qué agente debe completarlo, en vez de asumir que
+quedó hecho.
+
 ## Stack base
 
 Node.js · TypeScript · Fastify (o Express) · KafkaJS · PostgreSQL/SQL Server ·
