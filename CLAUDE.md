@@ -1,57 +1,60 @@
-# CLAUDE.md — Project standards
+# CLAUDE.md — Estándares del proyecto
 
-Event-driven OMS microservices. \*\*Fastify + Prisma + PostgreSQL + KafkaJS + Zod
+Microservicios OMS orientados a eventos. **Fastify + Prisma + PostgreSQL +
+KafkaJS + Zod + Vitest**, organizados como monorepo con npm workspaces.
 
-- Vitest\*\*, organized as an npm-workspaces monorepo.
-
-For the full architect persona and PR review checklist see
+Para la persona completa del arquitecto y el checklist de revisión de PR ver
 [`.claude/agents/backend-architect.md`](.claude/agents/backend-architect.md).
 
-## Layout
+## Estructura
 
 ```
 packages/
-  contracts/   # shared event envelope, topics, event schemas (the ONLY cross-service contract)
-  shared/      # cross-cutting infra: logger, errors, Kafka helpers, outbox relay, health, server
+  contracts/   # envelope de eventos, topics y schemas (el ÚNICO contrato entre servicios)
+  shared/      # infra transversal: logger, errores, helpers de Kafka, relay de outbox, health, server
 services/
-  orders/      # command side: creates orders, reacts to inventory events
-  inventory/   # reserves stock, emits reserved/failed
-  picking/     # creates picking tasks once stock is reserved
+  orders/      # lado de comandos: crea pedidos, reacciona a eventos de inventario
+  inventory/   # reserva stock, emite reservado/fallido
+  picking/     # crea tareas de picking cuando el stock queda reservado
 ```
 
-Each service follows clean architecture:
+Cada servicio sigue arquitectura limpia:
 `domain/` → `application/` (use-cases + ports) → `infrastructure/` (http, persistence, kafka).
 
-## Non-negotiable rules
+## Reglas no negociables
 
-- **Service boundaries:** each service owns its database; never query another
-  service's DB. Communicate via REST (commands/queries) or events (state
-  changes). Share **contracts only** (`@bjm/contracts`), never domain entities.
-- **Controllers stay thin:** validate input (Zod via `parseWith`) and delegate.
-  No business logic in controllers.
-- **Domain is pure:** no Prisma/Fastify/Kafka imports in `domain/`.
-- **Events are versioned** and wrapped in the standard `DomainEvent` envelope
-  with `correlationId` / `causationId`.
-- **Reliable messaging:** writes use the **transactional outbox**; consumers are
-  **idempotent** (inbox table), with **retry + DLQ** (see `@bjm/shared`).
-- **Errors:** throw `AppError` subclasses; never swallow errors; the centralised
-  handler shapes the response. No `console.log` (use `logger`). No magic strings.
-- **Types:** avoid `any` (lint warns). DTOs are separate from domain entities.
+- **Límites de servicio:** cada servicio es dueño de su base de datos; nunca
+  consultes la BD de otro servicio. Comunícate vía REST (comandos/consultas) o
+  eventos (cambios de estado). Comparte **solo contratos** (`@bjm/contracts`),
+  nunca entidades de dominio.
+- **Controllers delgados:** validan la entrada (Zod vía `parseWith`) y delegan.
+  Sin lógica de negocio en los controllers.
+- **El dominio es puro:** sin imports de Prisma/Fastify/Kafka en `domain/`.
+- **Eventos versionados** y envueltos en el envelope estándar `DomainEvent` con
+  `correlationId` / `causationId`.
+- **Mensajería fiable:** las escrituras usan el **outbox transaccional**; los
+  consumidores son **idempotentes** (tabla de inbox), con **retry + DLQ** (ver
+  `@bjm/shared`).
+- **Errores:** lanza subclases de `AppError`; nunca silencies errores; el handler
+  central da forma a la respuesta. Sin `console.log` (usa `logger`). Sin strings
+  mágicos.
+- **Tipos:** evita `any` (el lint lo advierte). Los DTO están separados de las
+  entidades de dominio.
 
-## Commands
+## Comandos
 
 ```bash
-npm install            # install workspace deps
-npm run build:libs     # build @bjm/contracts and @bjm/shared (needed before dev/build)
-npm run build          # build everything
-npm test               # run the unit test suite (no infra required)
+npm install            # instala dependencias del workspace
+npm run build:libs     # compila @bjm/contracts y @bjm/shared (necesario antes de dev/build)
+npm run build          # compila todo
+npm test               # ejecuta la suite de tests unitarios (no requiere infra)
 npm run lint           # eslint
 npm run format         # prettier --write
-docker compose up --build   # run the full stack (Kafka + 3 Postgres + 3 services)
+docker compose up --build   # levanta todo el stack (Kafka + 3 Postgres + 3 servicios)
 ```
 
-## Testing expectations
+## Expectativas de testing
 
-Unit tests for use cases and the consumer (validation / idempotency / retry /
-DLQ), in-memory repositories for use-case tests, schema tests for contracts.
-Tests must run without Kafka or a database.
+Tests unitarios para los use cases y el consumidor (validación / idempotencia /
+retry / DLQ), repositorios en memoria para los tests de use cases y tests de
+schema para los contratos. Los tests deben correr sin Kafka ni base de datos.

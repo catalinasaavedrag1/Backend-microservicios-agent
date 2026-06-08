@@ -1,23 +1,24 @@
 # Picking Service
 
-Fulfilment side of the OMS saga. Creates picking tasks once stock is reserved.
+Lado de cumplimiento (fulfilment) de la saga OMS. Crea tareas de picking una vez
+que el stock queda reservado.
 
-## Responsibilities
+## Responsabilidades
 
-- Consume `StockReserved` and create a picking task.
-- Emit `PickingAssigned` through the **transactional outbox**.
-- Expose REST endpoints to inspect picking tasks.
+- Consumir `StockReserved` y crear una tarea de picking.
+- Emitir `PickingAssigned` a través del **outbox transaccional**.
+- Exponer endpoints REST para inspeccionar las tareas de picking.
 
 ## API
 
-| Method | Path                      | Description              |
-| ------ | ------------------------- | ------------------------ |
-| GET    | `/picking-tasks`          | List picking tasks       |
-| GET    | `/picking-tasks/:orderId` | Fetch a task by order id |
-| GET    | `/health`                 | Liveness probe           |
-| GET    | `/ready`                  | Readiness (DB) probe     |
+| Método | Ruta                      | Descripción                  |
+| ------ | ------------------------- | ---------------------------- |
+| GET    | `/picking-tasks`          | Listar tareas de picking     |
+| GET    | `/picking-tasks/:orderId` | Obtener una tarea por pedido |
+| GET    | `/health`                 | Sonda de liveness            |
+| GET    | `/ready`                  | Sonda de readiness (BD)      |
 
-## Events
+## Eventos
 
-- **Consumes:** `oms.inventory.stock-reserved.v1`
-- **Produces:** `oms.picking.picking-assigned.v1`
+- **Consume:** `oms.inventory.stock-reserved.v1`
+- **Produce:** `oms.picking.picking-assigned.v1`

@@ -1,11 +1,12 @@
-# Architecture
+# Arquitectura
 
-## Overview
+## Visión general
 
-Three independently deployable microservices implement an Order Management saga.
-Each service owns its own PostgreSQL database and communicates only through Kafka
-events (state changes) and REST (commands/queries). The single shared artifact
-is `@bjm/contracts` (event envelope + schemas + topic names).
+Tres microservicios desplegables de forma independiente implementan una saga de
+gestión de pedidos. Cada servicio es dueño de su propia base de datos PostgreSQL
+y se comunica únicamente a través de eventos de Kafka (cambios de estado) y REST
+(comandos/consultas). El único artefacto compartido es `@bjm/contracts` (envelope
+de eventos + schemas + nombres de topics).
 
 ```
                  POST /orders
@@ -18,7 +19,7 @@ is `@bjm/contracts` (event envelope + schemas + topic names).
             └───────────────────┘  stock-reserved /     └──────────────────────┘
                       ▲             reservation-failed              │
                       │                                             │ stock-reserved
-        confirm/reject (saga)                                       ▼
+        confirmar/rechazar (saga)                                   ▼
                                                        ┌──────────────────────┐
                                                        │   picking-service     │
                                                        │   (picking DB)        │
@@ -27,38 +28,42 @@ is `@bjm/contracts` (event envelope + schemas + topic names).
                                                                   ▼
 ```
 
-## Saga flow (choreography)
+## Flujo de la saga (coreografía)
 
-1. **Create order** — `POST /orders` persists an `Order` (status `PENDING`) and
-   an `OrderCreated` row in the outbox, in one transaction.
-2. **Publish** — the outbox relay publishes `order.created` to Kafka.
-3. **Reserve stock** — inventory consumes `order.created` and, in one
-   transaction, either reserves stock + emits `stock-reserved`, or emits
-   `reservation-failed` with shortages.
-4. **Advance / compensate** — orders consumes the result:
+1. **Crear pedido** — `POST /orders` persiste un `Order` (estado `PENDING`) y una
+   fila `OrderCreated` en el outbox, en una sola transacción.
+2. **Publicar** — el relay del outbox publica `order.created` en Kafka.
+3. **Reservar stock** — inventory consume `order.created` y, en una transacción,
+   o bien reserva stock + emite `stock-reserved`, o bien emite
+   `reservation-failed` con los faltantes.
+4. **Avanzar / compensar** — orders consume el resultado:
    `stock-reserved → CONFIRMED`, `reservation-failed → REJECTED`.
-5. **Fulfil** — picking consumes `stock-reserved`, creates a picking task and
-   emits `picking-assigned`.
+5. **Cumplir** — picking consume `stock-reserved`, crea una tarea de picking y
+   emite `picking-assigned`.
 
-## Reliability patterns
+## Patrones de fiabilidad
 
-- **Transactional Outbox** — events are written in the same DB transaction as the
-  aggregate change, then relayed to Kafka. No lost events on crash.
-- **Idempotent consumers** — each consumed `eventId` is recorded in an inbox
-  (`processed_events`) table; redeliveries are skipped.
-- **Retry + Dead Letter Queue** — handlers retry with exponential backoff; poison
-  messages (schema-invalid) and exhausted retries are routed to `<topic>.dlq`.
-- **Correlation / causation ids** — propagated from HTTP through every event for
-  end-to-end tracing.
+- **Outbox transaccional** — los eventos se escriben en la misma transacción de
+  BD que el cambio del agregado y luego se relevan a Kafka. No se pierden eventos
+  ante una caída.
+- **Consumidores idempotentes** — cada `eventId` consumido se registra en una
+  tabla de inbox (`processed_events`); las reentregas se omiten.
+- **Retry + Dead Letter Queue** — los handlers reintentan con backoff
+  exponencial; los mensajes envenenados (schema inválido) y los reintentos
+  agotados se enrutan a `<topic>.dlq`.
+- **Correlation / causation ids** — se propagan desde HTTP a través de cada
+  evento para trazabilidad de punta a punta.
 
-## Per-aggregate ordering
+## Orden por agregado
 
-The aggregate id is used as the Kafka message key, so all events for an order
-land on the same partition and are processed in order.
+El id del agregado se usa como clave del mensaje de Kafka, de modo que todos los
+eventos de un pedido caen en la misma partición y se procesan en orden.
 
-## Trade-offs / next steps
+## Compromisos / próximos pasos
 
-- Delivery is at-least-once; idempotency makes effects exactly-once. For stronger
-  guarantees, fold the inbox insert into the handler's own transaction.
-- A real deployment should replace `prisma db push` with `prisma migrate deploy`,
-  add a schema registry, distributed tracing (OpenTelemetry) and DLQ alerting.
+- La entrega es al-menos-una-vez; la idempotencia hace que los efectos sean
+  exactamente-una-vez. Para garantías más fuertes, integra la inserción en el
+  inbox dentro de la propia transacción del handler.
+- Un despliegue real debería reemplazar `prisma db push` por
+  `prisma migrate deploy`, añadir un schema registry, tracing distribuido
+  (OpenTelemetry) y alertas de DLQ.

@@ -1,25 +1,26 @@
 # Orders Service
 
-Command side of the OMS saga. Owns the `Order` aggregate and its lifecycle.
+Lado de comandos de la saga OMS. Es dueño del agregado `Order` y su ciclo de
+vida.
 
-## Responsibilities
+## Responsabilidades
 
-- Expose REST endpoints to create and read orders.
-- Emit `OrderCreated` via the **transactional outbox**.
-- React to inventory events to advance the saga:
-  - `StockReserved` → confirm order.
-  - `ReservationFailed` → reject order (compensation).
+- Exponer endpoints REST para crear y leer pedidos.
+- Emitir `OrderCreated` a través del **outbox transaccional**.
+- Reaccionar a los eventos de inventario para avanzar la saga:
+  - `StockReserved` → confirmar el pedido.
+  - `ReservationFailed` → rechazar el pedido (compensación).
 
 ## API
 
-| Method | Path          | Description          |
-| ------ | ------------- | -------------------- |
-| POST   | `/orders`     | Create an order      |
-| GET    | `/orders/:id` | Fetch an order       |
-| GET    | `/health`     | Liveness probe       |
-| GET    | `/ready`      | Readiness (DB) probe |
+| Método | Ruta          | Descripción             |
+| ------ | ------------- | ----------------------- |
+| POST   | `/orders`     | Crear un pedido         |
+| GET    | `/orders/:id` | Obtener un pedido       |
+| GET    | `/health`     | Sonda de liveness       |
+| GET    | `/ready`      | Sonda de readiness (BD) |
 
-### Create order
+### Crear pedido
 
 ```bash
 curl -X POST http://localhost:3001/orders \
@@ -32,17 +33,17 @@ curl -X POST http://localhost:3001/orders \
   }'
 ```
 
-## Events
+## Eventos
 
-- **Produces:** `oms.orders.order-created.v1`
-- **Consumes:** `oms.inventory.stock-reserved.v1`, `oms.inventory.reservation-failed.v1`
+- **Produce:** `oms.orders.order-created.v1`
+- **Consume:** `oms.inventory.stock-reserved.v1`, `oms.inventory.reservation-failed.v1`
 
-## Local development
+## Desarrollo local
 
 ```bash
-npm install                 # from the repo root
-npm run build:libs          # build @bjm/contracts and @bjm/shared
+npm install                 # desde la raíz del repo
+npm run build:libs          # compila @bjm/contracts y @bjm/shared
 npm run dev -w @bjm/orders-service
 ```
 
-Environment variables are documented in `.env.example`.
+Las variables de entorno están documentadas en `.env.example`.

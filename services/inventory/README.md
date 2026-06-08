@@ -1,22 +1,23 @@
 # Inventory Service
 
-Stock reservation side of the OMS saga. Owns stock levels and reservations.
+Lado de reserva de stock de la saga OMS. Es dueño de los niveles de stock y de
+las reservas.
 
-## Responsibilities
+## Responsabilidades
 
-- Consume `OrderCreated` and attempt to reserve stock atomically.
-- Emit `StockReserved` on success or `ReservationFailed` (with shortages) on
-  failure, both through the **transactional outbox**.
-- Expose REST endpoints to inspect and adjust stock.
+- Consumir `OrderCreated` e intentar reservar stock de forma atómica.
+- Emitir `StockReserved` en caso de éxito o `ReservationFailed` (con los
+  faltantes) en caso de fallo, ambos a través del **outbox transaccional**.
+- Exponer endpoints REST para inspeccionar y ajustar el stock.
 
 ## API
 
-| Method | Path      | Description            |
-| ------ | --------- | ---------------------- |
-| GET    | `/stock`  | List stock levels      |
-| PUT    | `/stock`  | Upsert stock for a SKU |
-| GET    | `/health` | Liveness probe         |
-| GET    | `/ready`  | Readiness (DB) probe   |
+| Método | Ruta      | Descripción             |
+| ------ | --------- | ----------------------- |
+| GET    | `/stock`  | Listar niveles de stock |
+| PUT    | `/stock`  | Crear/actualizar un SKU |
+| GET    | `/health` | Sonda de liveness       |
+| GET    | `/ready`  | Sonda de readiness (BD) |
 
 ```bash
 curl -X PUT http://localhost:3002/stock \
@@ -24,10 +25,10 @@ curl -X PUT http://localhost:3002/stock \
   -d '{ "sku": "SKU-1", "available": 100 }'
 ```
 
-## Events
+## Eventos
 
-- **Consumes:** `oms.orders.order-created.v1`
-- **Produces:** `oms.inventory.stock-reserved.v1`, `oms.inventory.reservation-failed.v1`
+- **Consume:** `oms.orders.order-created.v1`
+- **Produce:** `oms.inventory.stock-reserved.v1`, `oms.inventory.reservation-failed.v1`
 
 ## Seed
 

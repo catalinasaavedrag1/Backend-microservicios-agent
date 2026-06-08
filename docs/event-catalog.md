@@ -1,31 +1,32 @@
-# Event Catalog
+# Catálogo de eventos
 
-All events share the standard envelope (`@bjm/contracts` → `DomainEvent`):
+Todos los eventos comparten el envelope estándar (`@bjm/contracts` →
+`DomainEvent`):
 
 ```ts
 type DomainEvent<TPayload> = {
-  eventId: string; // uuid v4, used for idempotency
+  eventId: string; // uuid v4, usado para idempotencia
   eventType: string;
   eventVersion: number;
-  aggregateId: string; // also the Kafka message key
+  aggregateId: string; // también es la clave del mensaje de Kafka
   aggregateType: string;
   occurredAt: string; // ISO-8601
   correlationId: string;
-  causationId?: string; // eventId that caused this event
-  source: string; // emitting service
+  causationId?: string; // eventId que causó este evento
+  source: string; // servicio emisor
   payload: TPayload;
 };
 ```
 
-| Topic                                 | eventType                          | Producer  | Consumers       |
+| Topic                                 | eventType                          | Productor | Consumidores    |
 | ------------------------------------- | ---------------------------------- | --------- | --------------- |
 | `oms.orders.order-created.v1`         | `oms.order.created`                | orders    | inventory       |
 | `oms.inventory.stock-reserved.v1`     | `oms.inventory.stock-reserved`     | inventory | orders, picking |
 | `oms.inventory.reservation-failed.v1` | `oms.inventory.reservation-failed` | inventory | orders          |
 | `oms.picking.picking-assigned.v1`     | `oms.picking.assigned`             | picking   | (terminal)      |
 
-Every topic has an implicit `<topic>.dlq` for poison messages and exhausted
-retries.
+Cada topic tiene un `<topic>.dlq` implícito para mensajes envenenados y
+reintentos agotados.
 
 ## Payloads
 
@@ -72,7 +73,8 @@ retries.
 }
 ```
 
-## Versioning policy
+## Política de versionado
 
-A backward-incompatible change to a payload becomes a **new topic** (`...v2`) and
-a new `eventVersion`, so existing consumers keep working until they migrate.
+Un cambio incompatible hacia atrás en un payload se convierte en un **nuevo
+topic** (`...v2`) y una nueva `eventVersion`, de modo que los consumidores
+existentes siguen funcionando hasta que migren.
