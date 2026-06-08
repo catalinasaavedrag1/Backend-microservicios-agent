@@ -1,0 +1,49 @@
+{
+  "name": "backend-microservices-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Event-driven OMS microservices scaffold (Fastify + Prisma + PostgreSQL + KafkaJS)",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "build:libs": "npm run build -w @bjm/contracts && npm run build -w @bjm/shared",
+    "build:services": "npm run build -w services/orders && npm run build -w services/inventory && npm run build -w services/picking",
+    "build": "npm run build:libs && npm run build:services",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prisma:generate": "npm run prisma:generate --workspaces --if-present",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@types/node": "^20.17.6",
+    "@vitest/coverage-v8": "^2.1.5",
+    "eslint": "^9.14.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.13.0",
+    "vitest": "^2.1.5"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

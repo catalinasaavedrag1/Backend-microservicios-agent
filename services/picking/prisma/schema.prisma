@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PickingTask {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  reservationId String
+  status        String // PENDING | PICKING | DONE
+  items         Json
+  createdAt     DateTime @default(now())
+
+  @@map("picking_tasks")
+}
+
+model OutboxMessage {
+  id            String    @id @default(uuid())
+  eventId       String    @unique
+  topic         String
+  eventType     String
+  eventVersion  Int
+  aggregateId   String
+  aggregateType String
+  correlationId String
+  causationId   String?
+  payload       Json
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([publishedAt])
+  @@map("outbox_messages")
+}
+
+model ProcessedEvent {
+  eventId     String   @id
+  eventType   String
+  processedAt DateTime @default(now())
+
+  @@map("processed_events")
+}
